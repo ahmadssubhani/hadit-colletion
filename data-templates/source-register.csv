@@ -1,0 +1,5 @@
+provider,material,access_method,source_url,license,permission_status,translation_rights,retrieved_at,checksum,notes
+Sunnah.com,Sunni hadith text and translations,API,https://sunnah.com/developers,,request_required,,,
+Thaqalayn,Twelver Shia hadith text and translations,API or licensed export,https://thaqalayn.net/,,request_required,,,
+OpenITI,Machine-readable Arabic corpus,download,https://openiti.org/,,review_per_release,,,
+HadeethEnc,Multilingual selected hadith,API,https://hadeethenc.com/en/home,,review_terms,,,
