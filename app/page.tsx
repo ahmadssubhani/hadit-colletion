@@ -106,7 +106,7 @@ export default async function HomePage() {
             <h2 className="title">Continue researching</h2>
           </div>
         </div>
-        {featured.error ? <ErrorState message={featured.error.message} /> : null}
+        {featured.error ? <ErrorState message={featured.error} /> : null}
         {!featured.hadiths.length ? (
           <EmptyState message="No published hadith clusters are visible yet. After review, publish a pilot of 25 clusters." />
         ) : (
