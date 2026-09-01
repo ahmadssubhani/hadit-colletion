@@ -1,0 +1,2 @@
+hadith_slug,book_title,hadith_number,chain_number,position,raw_name,narrator_slug,transmission_word,match_confidence,match_notes,raw_chain_text,continuity_status,quality_status,notes,verified
+banner-at-khaybar,Sahih al-Bukhari,4210,1,1,Sahl ibn Sa'd,,,,"Leave narrator_slug empty until identity is reviewed",,unverified,unverified,Illustrative chain template,false

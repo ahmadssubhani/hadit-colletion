@@ -12,6 +12,8 @@ Supabase PostgreSQL
 
 Use `@supabase/supabase-js` directly for the first release. Do not add Prisma, Drizzle, a CMS, authentication, queues, a graph database, or a separate search service until there is a demonstrated need.
 
+Public research browsing is anonymous. Ingestion uses the service-role key from local scripts, not a browser client.
+
 ## Why this stack
 
 - Next.js keeps pages, server rendering, metadata and small server endpoints together.
@@ -48,6 +50,8 @@ scripts/
 ├── match-narrators.ts
 └── propose-clusters.ts
 ```
+
+The running application uses `lib/supabase/server.ts` (anonymous, server) and `lib/supabase/admin.ts` (service-role, scripts only).
 
 ## Rendering strategy
 

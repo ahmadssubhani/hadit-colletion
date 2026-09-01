@@ -180,6 +180,50 @@ Before publishing a source variation, verify:
 - every scholarly assessment citation
 - tradition label is descriptive and neutral
 
+## Implemented import workflow
+
+Version one starts with a reviewed pilot:
+
+```text
+25 hadith clusters
+```
+
+Do not run a massive bulk import automatically.
+
+### 1. Fill the CSV templates
+
+Use `data-templates/` after human review:
+
+- `source-register.csv` — provider, rights, permission
+- `hadiths.csv` — parent clusters
+- `source-variations.csv` — one row per book occurrence
+- `narrators.csv` — identities
+- `assessments.csv` — attributed judgments (`target_type` = `narrator`, `variation`, or `chain`)
+- `chains.csv` — optional isnad nodes (`raw_name` required; leave `narrator_slug` empty if unresolved)
+
+Template sample rows are illustrative and default to `draft` / `verified=false`. RLS hides them from anonymous visitors until a reviewer publishes them.
+
+### 2. Validate, then apply locally
+
+```bash
+npm run ingest:dry-run
+npm run ingest -- --apply
+```
+
+`--apply` requires `SUPABASE_SERVICE_ROLE_KEY`. Validation fails closed on missing required fields, unknown slugs, duplicate cluster slugs, invalid review status, and unknown scholars.
+
+You may also import reviewed CSVs through the Supabase table editor. Preserve original scholarly wording; do not silently rewrite grades.
+
+### 3. Candidate helpers (not published evidence)
+
+```bash
+npm run normalize-arabic -- "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ"
+npm run match-narrators
+npm run propose-clusters
+```
+
+These print candidates. Treat AI or script output as review material, never as a consensus grade.
+
 ## Scaling later
 
-Start with Supabase CSV imports. Add local TypeScript scripts when repetitive work becomes expensive. Add a private review interface only after the table editor no longer supports the workflow efficiently.
+Start with Supabase CSV imports. Local TypeScript scripts are available for repetitive validation. Add a private review interface only after the table editor no longer supports the workflow efficiently.
