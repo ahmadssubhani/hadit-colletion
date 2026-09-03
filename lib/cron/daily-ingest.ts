@@ -181,7 +181,7 @@ export async function runDailyHadithIngest(options?: {
       rawChainText: c.rawChainText,
       nodes: c.nodes,
       assessments: c.assessments,
-      rawPayload: c,
+      rawPayload: c as unknown as Record<string, unknown>,
     }));
   }
 
