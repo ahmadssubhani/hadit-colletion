@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDailyHadithIngest, getDailyStatus } from "@/lib/cron/daily-ingest";
 
+interface DailyHadithRequestBody {
+  dryRun?: boolean;
+  topicSlug?: string;
+  batchSize?: number;
+}
+
 function isAuthorized(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!cronSecret) {
@@ -22,8 +28,9 @@ export async function GET(request: NextRequest) {
   try {
     const status = await getDailyStatus(topicSlug);
     return NextResponse.json(status);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -36,9 +43,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let body: any = {};
+    let body: DailyHadithRequestBody = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as DailyHadithRequestBody;
     } catch {
       // Empty body is okay
     }
@@ -56,7 +63,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(result, { status: result.success ? 200 : 400 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

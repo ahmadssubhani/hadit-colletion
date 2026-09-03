@@ -28,14 +28,15 @@ export class FetchAggregator {
           fetchedCount: candidates.length,
         });
         return candidates;
-      } catch (err: any) {
-        console.error(`[FetchAggregator] Source ${f.name} unreachable/failed:`, err.message);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error(`[FetchAggregator] Source ${f.name} unreachable/failed:`, errorMessage);
         sourceHealth.push({
           sourceType: f.sourceType,
           name: f.name,
           status: "unreachable",
           fetchedCount: 0,
-          errorMessage: err.message,
+          errorMessage,
         });
         return [];
       }

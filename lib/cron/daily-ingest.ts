@@ -4,6 +4,7 @@ import {
   getTopicDefinition,
   getAllTopicDefinitions,
   type TopicDefinition,
+  type HadithCandidate,
 } from "./topics-registry";
 import { FetchAggregator } from "./fetchers/aggregator";
 import { RelevanceRanker } from "./relevance-ranker";
@@ -158,7 +159,7 @@ export async function runDailyHadithIngest(options?: {
 
   // Fallback to pre-indexed candidates if live fetchers return 0 items (e.g. offline/scaffolded mode)
   if (rawCandidates.length === 0 && topicDef && topicDef.hadithCandidates && topicDef.hadithCandidates.length > 0) {
-    rawCandidates = topicDef.hadithCandidates.map((c: any) => ({
+    rawCandidates = topicDef.hadithCandidates.map((c: HadithCandidate) => ({
       source: c.identifier.startsWith("bukhari") || c.identifier.startsWith("muslim") ? "sunnah.com" :
               c.identifier.startsWith("kafi") || c.identifier.startsWith("nahj") ? "thaqalayn" :
               c.identifier.startsWith("hadeethenc") ? "hadeethenc" : "reference",
@@ -439,7 +440,8 @@ export async function runDailyHadithIngest(options?: {
           })
           .eq("id", topicId);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       return {
         success: false,
         topicSlug: targetSlug,
@@ -450,8 +452,8 @@ export async function runDailyHadithIngest(options?: {
         remainingInTopicPool: remainingInPool,
         shortlistedHadiths: shortlistedSummary,
         isDryRun,
-        message: `Database error during ingestion: ${err.message}`,
-        error: err.message,
+        message: `Database error during ingestion: ${errorMessage}`,
+        error: errorMessage,
       };
     }
   }
@@ -479,7 +481,7 @@ export async function runDailyHadithIngest(options?: {
 export async function setActiveTopic(
   topicSlug: string,
   customTopic?: Partial<TopicDefinition>,
-): Promise<{ success: boolean; message: string; activeTopic: any }> {
+): Promise<{ success: boolean; message: string; activeTopic: unknown }> {
   const supabase = getServiceRoleSupabaseClient();
   const existingDef = getTopicDefinition(topicSlug);
 
@@ -517,10 +519,11 @@ export async function setActiveTopic(
         message: `Active daily topic switched to '${title}' (${topicSlug}). Next cron run will start Day 1 for this topic.`,
         activeTopic: updated,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       return {
         success: false,
-        message: `Failed to set active topic in database: ${err.message}`,
+        message: `Failed to set active topic in database: ${errorMessage}`,
         activeTopic: null,
       };
     }

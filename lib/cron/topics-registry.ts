@@ -39,7 +39,7 @@ export interface HadithCandidate {
 
 import { TopicDefinition as NewTopicDefinition } from "./fetchers/types";
 export type TopicDefinition = NewTopicDefinition & {
-  hadithCandidates?: any[];
+  hadithCandidates?: HadithCandidate[];
 };
 
 // Built-in topics registry

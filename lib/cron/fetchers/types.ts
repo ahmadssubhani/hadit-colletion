@@ -38,7 +38,7 @@ export interface RawFetchedCandidate {
   rawChainText?: string;
   nodes?: CandidateNarratorNode[];
   assessments?: CandidateAssessment[];
-  rawPayload: any;
+  rawPayload: Record<string, unknown>;
 }
 
 export interface TopicDefinition {

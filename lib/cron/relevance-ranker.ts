@@ -23,7 +23,7 @@ export class RelevanceRanker {
     let englishKeywordScore = 0;
     let chapterScore = 0;
     let completenessScore = 0;
-    let diversityBoost = 0;
+    const diversityBoost = 0;
     const matchedKeywords: string[] = [];
 
     const arabicText = candidate.arabicText.toLowerCase();
