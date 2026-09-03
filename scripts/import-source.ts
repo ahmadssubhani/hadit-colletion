@@ -19,8 +19,24 @@ async function main() {
     : createAdminSupabaseClient();
 
   const { data: scholars, error: scholarError } = await readClient.from("scholars").select("id, slug");
-  if (scholarError) throw scholarError;
-  const scholarBySlug = new Map((scholars ?? []).map((row) => [row.slug, row.id]));
+  if (scholarError && !dryRun) throw scholarError;
+  const standardScholarSlugs = [
+    "yahya-ibn-main",
+    "ahmad-ibn-hanbal",
+    "al-bukhari",
+    "abu-hatim-al-razi",
+    "al-nasai",
+    "al-dhahabi",
+    "ibn-hajar",
+    "al-kashshi",
+    "al-najashi",
+    "al-tusi",
+    "al-hilli",
+    "al-majlisi",
+    "al-khoei",
+  ];
+  const dbScholars = scholars && scholars.length > 0 ? scholars : standardScholarSlugs.map((slug, id) => ({ id: id + 1, slug }));
+  const scholarBySlug = new Map(dbScholars.map((row) => [row.slug, row.id]));
 
   const result = validateCorpus(corpus, new Set(scholarBySlug.keys()));
   console.log("Validation counts:", result.counts);

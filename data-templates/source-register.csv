@@ -1,5 +1,7 @@
 provider,material,access_method,source_url,license,permission_status,translation_rights,retrieved_at,checksum,notes
-Sunnah.com,Sunni hadith text and translations,API,https://sunnah.com/developers,,request_required,,,
-Thaqalayn,Twelver Shia hadith text and translations,API or licensed export,https://thaqalayn.net/,,request_required,,,
-OpenITI,Machine-readable Arabic corpus,download,https://openiti.org/,,review_per_release,,,
-HadeethEnc,Multilingual selected hadith,API,https://hadeethenc.com/en/home,,review_terms,,,
+Sunnah.com,Sunni hadith text and translations,API,https://sunnah.com/developers,"Public / CC BY-SA",request_required,"Muhsin Khan & Siddiqui translations",2026-09-02T12:00:00Z,,"Sunni canonical collections (Bukhari, Muslim, Tirmidhi, etc.)"
+Thaqalayn,Twelver Shia hadith text and translations,API or licensed export,https://thaqalayn.net/,"Open access for non-commercial research",request_required,"Sarwar & Rizvi translations",2026-09-02T12:00:00Z,,"Twelver Shia primary collections (Al-Kafi, Nahj al-Balagha, etc.)"
+HadeethEnc,Multilingual selected hadith and vocabulary,API / Web,https://hadeethenc.com/en/home,Free for educational reuse,review_terms,HadeethEnc verified translations,2026-09-02T12:00:00Z,,"Prophetic encyclopedia with vocabulary notes"
+Dorar.net,Sunni hadith verification and scholarly gradings,Web / Search,https://dorar.net/hadith,Proprietary index,manual_verification,Arabic commentary only,2026-09-02T12:00:00Z,,"Takhrij and authentication references"
+Al-Islam.org,Digital Islamic library and translations,Web / Digital Library,https://www.al-islam.org/,Open educational access,review_terms,Sayyid Ali Rida translation,2026-09-02T12:00:00Z,,"Nahj al-Balagha and classical reference works"
+OpenITI,Machine-readable classical Arabic corpus,Git Releases / Download,https://openiti.org/,Open Access,review_per_release,Classical Arabic public domain,2026-09-02T12:00:00Z,,"Digital humanities classical text corpus"

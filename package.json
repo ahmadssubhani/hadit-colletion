@@ -9,6 +9,10 @@
     "lint": "eslint .",
     "ingest": "tsx scripts/import-source.ts",
     "ingest:dry-run": "tsx scripts/import-source.ts --dry-run",
+    "seed:wahi": "tsx scripts/seed-first-wahi.ts",
+    "cron:daily": "tsx scripts/daily-hadith-cron.ts",
+    "cron:status": "tsx scripts/daily-hadith-cron.ts --status",
+    "cron:set-topic": "tsx scripts/daily-hadith-cron.ts --set-topic",
     "normalize-arabic": "tsx scripts/normalize-arabic.ts",
     "match-narrators": "tsx scripts/match-narrators.ts",
     "propose-clusters": "tsx scripts/propose-clusters.ts"
