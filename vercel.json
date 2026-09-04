@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-hadith",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
