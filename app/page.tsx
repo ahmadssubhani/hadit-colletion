@@ -4,13 +4,21 @@ import { HadithCard } from "@/components/HadithCard";
 import { HadithCollectionCard } from "@/components/HadithCollectionCard";
 import { HeroSection } from "@/components/HeroSection";
 import { EmptyState, ErrorState } from "@/components/States";
+import { DailyHadithTable } from "@/components/DailyHadithTable";
 import { DEMO_HADITHS, HOME_COLLECTIONS, HOME_REASONS, HOME_TOPICS } from "@/lib/content/home";
 import { getBooks, getCorpusStats, getFeaturedHadiths } from "@/lib/queries";
+import { runDailyHadithIngest } from "@/lib/cron/daily-ingest";
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [stats, featured, books] = await Promise.all([getCorpusStats(), getFeaturedHadiths(), getBooks()]);
+  const [stats, featured, books, dailyIngest] = await Promise.all([
+    getCorpusStats(),
+    getFeaturedHadiths(),
+    getBooks(),
+    runDailyHadithIngest({ topicSlug: "first-wahi", apply: false }),
+  ]);
+
   const collections = books.length
     ? books.slice(0, 6).map((book) => ({ title: book.title, query: book.title, note: book.tradition }))
     : HOME_COLLECTIONS;
@@ -110,12 +118,28 @@ export default async function HomePage() {
         {!featured.hadiths.length ? (
           <EmptyState message="No published hadith clusters are visible yet. After review, publish a pilot of 25 clusters." />
         ) : (
-          <div className="cards" style={{ marginBottom: 70 }}>
+          <div className="cards" style={{ marginBottom: 40 }}>
             {featured.hadiths.map((hadith) => (
               <HadithCard key={hadith.id} hadith={hadith} variationCount={hadith.variation_count} />
             ))}
           </div>
         )}
+
+        {/* Daily Hadith Section (Under Published Clusters) */}
+        <div className="section-head" style={{ marginTop: 50 }}>
+          <div>
+            <div className="eyebrow">Daily Hadith</div>
+            <h2 className="title">Daily 5 Hadith • First Wahi</h2>
+          </div>
+          <p>Auto-rotates daily from live collection candidates</p>
+        </div>
+        <DailyHadithTable
+          topicTitle={dailyIngest?.topicTitle}
+          dayNumber={dailyIngest?.dayNumber}
+          runDate={dailyIngest?.runDate}
+          remainingInPool={dailyIngest?.remainingInTopicPool}
+          hadiths={dailyIngest?.shortlistedHadiths}
+        />
       </section>
     </>
   );

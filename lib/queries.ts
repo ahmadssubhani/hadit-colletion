@@ -286,10 +286,18 @@ export async function searchHadiths(filters: SearchFilters): Promise<SearchResul
 export async function getHadithBySlug(slug: string) {
   const supabase = createServerSupabaseClient();
   const { data: hadith, error } = await supabase.from("hadiths").select("*").eq("slug", slug).maybeSingle();
+
+  const fallbackKey = slug === "first-wahi" || slug === "first-revelation-at-hira" ? "first-revelation-at-hira" : slug;
+  const fallbackHadith = FALLBACK_HADITHS.find((row) => row.slug === slug || row.slug === fallbackKey);
+  const fallbackVars = FALLBACK_VARIATIONS[slug] ?? FALLBACK_VARIATIONS[fallbackKey] ?? [];
+
   if (error || !hadith) {
-    const fallback = FALLBACK_HADITHS.find((row) => row.slug === slug);
-    if (fallback) {
-      return { hadith: fallback, variations: FALLBACK_VARIATIONS[slug] ?? [], error: null };
+    if (fallbackHadith) {
+      return {
+        hadith: { ...fallbackHadith, variation_count: fallbackVars.length },
+        variations: fallbackVars,
+        error: null,
+      };
     }
     return { hadith: null, variations: [] as SourceVariationDetail[], error };
   }
@@ -300,9 +308,25 @@ export async function getHadithBySlug(slug: string) {
     .eq("hadith_id", hadith.id)
     .order("id");
 
-  if (variationError) return { hadith: hadith as Hadith, variations: [], error: variationError };
+  if (variationError || !variations || variations.length === 0) {
+    if (fallbackVars.length > 0) {
+      return {
+        hadith: {
+          ...hadith,
+          variation_count: fallbackVars.length,
+        } as Hadith & { variation_count: number },
+        variations: fallbackVars,
+        error: null,
+      };
+    }
+    return {
+      hadith: { ...hadith, variation_count: 0 } as Hadith & { variation_count: number },
+      variations: [],
+      error: variationError,
+    };
+  }
 
-  const variationRows = (variations ?? []) as SourceVariation[];
+  const variationRows = variations as SourceVariation[];
   const variationIds = variationRows.map((row) => row.id);
 
   const [{ data: chains }, { data: assessments }] = await Promise.all([
@@ -332,7 +356,14 @@ export async function getHadithBySlug(slug: string) {
     ),
   }));
 
-  return { hadith: hadith as Hadith, variations: details, error: null };
+  return {
+    hadith: {
+      ...hadith,
+      variation_count: details.length,
+    } as Hadith & { variation_count: number },
+    variations: details,
+    error: null,
+  };
 }
 
 export async function getNarrators(page = 1) {
