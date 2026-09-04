@@ -14,6 +14,9 @@ function isAuthorized(request: NextRequest): boolean {
     return true;
   }
 
+  const querySecret = request.nextUrl.searchParams.get("secret");
+  if (querySecret === cronSecret) return true;
+
   const authHeader = request.headers.get("authorization");
   if (!authHeader) return false;
 
@@ -24,6 +27,33 @@ function isAuthorized(request: NextRequest): boolean {
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const topicSlug = params.get("topic") ?? undefined;
+  const applyParam = params.get("apply");
+
+  // If cron-job.org or Vercel cron calls GET with ?apply=true or ?secret=...
+  if (applyParam === "true" || params.has("secret")) {
+    if (!isAuthorized(request)) {
+      return NextResponse.json(
+        { error: "Unauthorized. Provide ?secret=<CRON_SECRET> or Authorization header" },
+        { status: 401 },
+      );
+    }
+
+    const batchSize = Number(params.get("batch_size") || 5);
+    const dryRunParam = params.get("dry_run");
+    const isDryRun = dryRunParam === "true";
+
+    try {
+      const result = await runDailyHadithIngest({
+        topicSlug,
+        apply: !isDryRun,
+        batchSize,
+      });
+      return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    }
+  }
 
   try {
     const status = await getDailyStatus(topicSlug);
