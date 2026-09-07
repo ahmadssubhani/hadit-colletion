@@ -49,7 +49,7 @@ export function ChainEvidenceSummary({ chain }: { chain: Chain }) {
         )}
         <p className="score-note">
           Display scores are transparent editorial mappings of the continuity and quality statuses recorded during
-          ingestion. They are not classical grades and are not a substitute for consulting a scholar's original wording.
+          ingestion. They are not classical grades and are not a substitute for consulting a scholar&apos;s original wording.
         </p>
       </div>
     </details>
