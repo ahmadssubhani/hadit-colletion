@@ -79,9 +79,8 @@
 // }
 import { bookInitial, formatList } from "@/lib/format";
 import { AssessmentCitation } from "@/components/AssessmentCitation";
-import { ChainEvidenceSummary } from "@/components/ChainEvidenceSummary";
 import { EvidenceStatuses } from "@/components/EvidenceStatuses";
-import { IsnadChain } from "@/components/IsnadChain";
+import { InteractiveChain } from "@/components/InteractiveChain";
 import type { SourceVariationDetail } from "@/lib/types";
 
 export function SourceVariation({ variation, defaultOpen = false }: { variation: SourceVariationDetail; defaultOpen?: boolean }) {
@@ -141,8 +140,7 @@ export function SourceVariation({ variation, defaultOpen = false }: { variation:
               </div>
               <span className="pill">{chain.continuity_status.replace(/_/g, " ")}</span>
             </div>
-            <IsnadChain nodes={chain.chain_narrators ?? []} />
-            <ChainEvidenceSummary chain={chain} />
+            <InteractiveChain chain={chain} />
           </div>
         ))}
         {!variation.chains.length ? <p className="meta">No verified isnad is recorded for this occurrence.</p> : null}
