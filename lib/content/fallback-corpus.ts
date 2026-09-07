@@ -1,5 +1,6 @@
 import type {
   Book,
+  ChainAssessment,
   Hadith,
   HadithAssessment,
   Narrator,
@@ -235,6 +236,31 @@ function assessment(
   };
 }
 
+function chainAssessment(
+  id: number,
+  chainId: number,
+  scholar: Scholar,
+  quality: string,
+  continuity: string,
+  explanation: string,
+): ChainAssessment {
+  return {
+    id,
+    chain_id: chainId,
+    scholar_id: scholar.id,
+    continuity_status: continuity,
+    quality_status: quality,
+    explanation,
+    reference_book: scholar.name,
+    edition: null,
+    volume: null,
+    page: null,
+    source_url: null,
+    verified: true,
+    scholars: scholar,
+  };
+}
+
 export const FALLBACK_VARIATIONS: Record<string, SourceVariationDetail[]> = {
   "first-revelation-at-hira": [
     {
@@ -272,6 +298,11 @@ export const FALLBACK_VARIATIONS: Record<string, SourceVariationDetail[]> = {
             { id: 5004, chain_id: 501, narrator_id: 4, position: 4, raw_name: "Uqayl ibn Khalid", transmission_word: "an", match_confidence: 1, match_notes: null, narrators: null },
             { id: 5005, chain_id: 501, narrator_id: 5, position: 5, raw_name: "Al-Layth ibn Sa'd", transmission_word: "haddathana", match_confidence: 1, match_notes: null, narrators: null },
             { id: 5006, chain_id: 501, narrator_id: 6, position: 6, raw_name: "Yahya ibn Bukayr", transmission_word: "haddathana", match_confidence: 1, match_notes: null, narrators: null },
+          ],
+          chain_assessments: [
+            chainAssessment(701, 501, scholarBukhari, "sahih", "muttasil", "Included as the opening tradition of the Sahih, meeting Bukhari's own conditions for authenticity."),
+            chainAssessment(702, 501, scholarIbnHajar, "sahih", "muttasil", "Confirmed as a fully connected, authentic chain in Fath al-Bari's commentary on this hadith."),
+            chainAssessment(703, 501, scholarYahya, "sahih", "muttasil", "Every narrator in this route is independently graded thiqah (trustworthy) with no missing links."),
           ],
         },
       ],

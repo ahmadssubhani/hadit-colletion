@@ -52,6 +52,7 @@ export type Narrator = {
   region: string | null;
   generation: string | null;
   biography: string | null;
+  /** Unused by the narrator profile. Do not display; drop from schema/seed when convenient. */
   summary_score: number | null;
   identity_status: string;
 };
@@ -78,7 +79,9 @@ export type Chain = {
   notes: string | null;
   verified: boolean;
   chain_narrators?: ChainNarrator[];
+  chain_assessments?: ChainAssessment[];
 };
+
 
 export type Scholar = {
   id: number;

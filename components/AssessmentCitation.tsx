@@ -1,15 +1,30 @@
-import { citation, one } from "@/lib/format";
-import type { HadithAssessment, NarratorAssessment } from "@/lib/types";
+import { chainEvidenceScore, citation, formatStatus, one } from "@/lib/format";
+import type { ChainAssessment, HadithAssessment, NarratorAssessment } from "@/lib/types";
 
 export function AssessmentCitation({
   assessment,
 }: {
-  assessment: HadithAssessment | NarratorAssessment;
+  assessment: HadithAssessment | NarratorAssessment | ChainAssessment;
 }) {
   const scholar = one(assessment.scholars);
-  const original = "original_grade" in assessment ? assessment.original_grade : assessment.original_term;
-  const normalized = "normalized_grade" in assessment ? assessment.normalized_grade : assessment.normalized_term;
-  const score = "display_score" in assessment ? assessment.display_score : null;
+  const isChainAssessment = "quality_status" in assessment;
+  const original = "original_grade" in assessment
+    ? assessment.original_grade
+    : "original_term" in assessment
+      ? assessment.original_term
+      : formatStatus(assessment.quality_status);
+  const normalized = "normalized_grade" in assessment
+    ? assessment.normalized_grade
+    : "normalized_term" in assessment
+      ? assessment.normalized_term
+      : assessment.continuity_status
+        ? formatStatus(assessment.continuity_status)
+        : null;
+  const score = "display_score" in assessment
+    ? assessment.display_score
+    : isChainAssessment
+      ? chainEvidenceScore(assessment.quality_status, assessment.continuity_status)
+      : null;
   const cite = citation(assessment);
 
   return (

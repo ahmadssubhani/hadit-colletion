@@ -56,6 +56,7 @@ create table public.narrators (
   region text,
   generation text,
   biography text,
+  -- Unused by product UI. Reliability is derived from sourced narrator_assessments.display_score only. Drop this column when migrating.
   summary_score smallint check (summary_score between 0 and 100),
   identity_status text not null default 'unverified',
   created_at timestamptz not null default now()

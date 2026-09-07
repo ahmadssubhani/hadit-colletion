@@ -708,7 +708,44 @@ button {
   padding: 5px 8px;
 }
 
-.knowledge-intro {
+.knowledge-intro {.evidence-popup {
+  margin-top: 14px;
+}
+
+.evidence-popup-trigger {
+  cursor: pointer;
+  list-style: none;
+  display: block;
+}
+
+.evidence-popup-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green2);
+}
+
+.evidence-popup-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-popup-hint .chev {
+  transition: transform 0.15s ease;
+}
+
+.evidence-popup[open] .evidence-popup-hint .chev {
+  transform: rotate(180deg);
+}
+
+.evidence-popup-body {
+  margin-top: 12px;
+}
   max-width: 760px;
 }
 

@@ -39,6 +39,37 @@ export function formatAhYear(year: number | null | undefined): string {
   return `${year} AH`;
 }
 
+const QUALITY_SCORE_MAP: Record<string, number> = {
+  sahih: 95,
+  hasan: 78,
+  hasan_sahih: 88,
+  muttasil: 90,
+  daif: 35,
+  "da'if": 35,
+  munqati: 30,
+  mawdu: 5,
+  unverified: 0,
+};
+
+export function chainEvidenceScore(qualityStatus: string | null | undefined, continuityStatus: string | null | undefined): number | null {
+  const quality = (qualityStatus ?? "").toLowerCase().replace(/[\s-]+/g, "_");
+  const continuity = (continuityStatus ?? "").toLowerCase().replace(/[\s-]+/g, "_");
+  const qualityScore = QUALITY_SCORE_MAP[quality];
+  const continuityScore = QUALITY_SCORE_MAP[continuity];
+  if (qualityScore === undefined && continuityScore === undefined) return null;
+  if (qualityScore === undefined) return continuityScore;
+  if (continuityScore === undefined) return qualityScore;
+  return Math.round((qualityScore * 0.7 + continuityScore * 0.3));
+}
+
+export function evidenceLabel(score: number | null): string {
+  if (score === null) return "Not yet assessed";
+  if (score >= 85) return "Strongly reliable";
+  if (score >= 65) return "Generally reliable";
+  if (score >= 40) return "Disputed reliability";
+  return "Weak or rejected";
+}
+
 export function citation(parts: {
   reference_book?: string | null;
   edition?: string | null;

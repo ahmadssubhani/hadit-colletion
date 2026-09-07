@@ -2,14 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AssessmentCitation } from "@/components/AssessmentCitation";
 import { ErrorState } from "@/components/States";
-import { formatAhYear } from "@/lib/format";
+import { TransmissionEvidence } from "@/components/TransmissionEvidence";
+import { meanDisplayScore } from "@/lib/narrator-evidence";
 import { getNarratorBySlug } from "@/lib/queries";
 
 export const revalidate = 60;
 
 export default async function NarratorPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { narrator, assessments, appearances, error } = await getNarratorBySlug(slug);
+  const { narrator, assessments, appearances, transmission, error } = await getNarratorBySlug(slug);
 
   if (error) {
     return (
@@ -21,6 +22,9 @@ export default async function NarratorPage({ params }: { params: Promise<{ slug:
   if (!narrator) notFound();
 
   const initial = narrator.arabic_name?.[0] ?? narrator.name[0] ?? "?";
+  const uniqueReports = [...new Map(appearances.filter((item) => item.hadith_slug).map((item) => [item.hadith_slug, item])).values()];
+  const mappedScore = meanDisplayScore(assessments);
+  const scoredCount = assessments.filter((row) => typeof row.display_score === "number").length;
 
   return (
     <section>
@@ -43,7 +47,7 @@ export default async function NarratorPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
       </div>
-      <div className="shell layout">
+      <div className="shell">
         <article>
           <p className="lead">
             {narrator.biography ||
@@ -62,7 +66,10 @@ export default async function NarratorPage({ params }: { params: Promise<{ slug:
               ))}
             </div>
           ) : (
-            <p className="notice">No verified narrator assessments are attached to this profile.</p>
+            <p className="notice">
+              No sourced narrator assessments are attached to this profile. Named rijal judgments appear here only when a
+              reference book or source URL is recorded.
+            </p>
           )}
           <p className="score-note">
             Display scores, when present, are transparent editorial mappings of textual categories. They are not classical
@@ -70,54 +77,32 @@ export default async function NarratorPage({ params }: { params: Promise<{ slug:
           </p>
           <div className="section-head">
             <div>
+              <div className="eyebrow">Transmission</div>
+              <h2 className="title">Teachers and students</h2>
+            </div>
+          </div>
+          <TransmissionEvidence 
+            transmission={transmission} 
+            narrator={narrator} 
+            mappedScore={mappedScore} 
+            scoredCount={scoredCount} 
+            reportsIndexed={uniqueReports.length} 
+          />
+          <div className="section-head">
+            <div>
               <div className="eyebrow">Occurrences</div>
               <h2 className="title">Verified chains that include this narrator</h2>
             </div>
           </div>
           <div className="cards">
-            {appearances
-              .filter((item) => item.hadith_slug)
-              .map((item) => (
-                <Link className="card clickable" key={`${item.hadith_slug}-${item.book_title}`} href={`/hadiths/${item.hadith_slug}`}>
-                  <div className="meta">{item.book_title ?? "Source not named"}</div>
-                  <h3>{item.hadith_title}</h3>
-                </Link>
-              ))}
+            {uniqueReports.map((item) => (
+              <Link className="card clickable" key={`${item.hadith_slug}-${item.book_title}`} href={`/hadiths/${item.hadith_slug}`}>
+                <div className="meta">{item.book_title ?? "Source not named"}</div>
+                <h3>{item.hadith_title}</h3>
+              </Link>
+            ))}
           </div>
         </article>
-        <aside className="aside">
-          {narrator.summary_score !== null ? (
-            <div className="card score-card">
-              <div className="label">Evidence summary</div>
-              <div className="score-ring">{narrator.summary_score}</div>
-              <b>Mapped display score</b>
-              <div className="meta">{assessments.length} attributed assessment{assessments.length === 1 ? "" : "s"}</div>
-            </div>
-          ) : null}
-          <div className="card">
-            <div className="label">Identity</div>
-            <div className="fact">
-              <span className="label">Born</span>
-              <b>{formatAhYear(narrator.birth_year_ah)}</b>
-            </div>
-            <div className="fact">
-              <span className="label">Died</span>
-              <b>{formatAhYear(narrator.death_year_ah)}</b>
-            </div>
-            <div className="fact">
-              <span className="label">Region</span>
-              <b>{narrator.region || "Not recorded"}</b>
-            </div>
-            <div className="fact">
-              <span className="label">Generation</span>
-              <b>{narrator.generation || "Not recorded"}</b>
-            </div>
-            <div className="fact">
-              <span className="label">Name variants</span>
-              <b>{narrator.alternative_names.length || "None recorded"}</b>
-            </div>
-          </div>
-        </aside>
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import { one } from "@/lib/format";
 import {
   PAGE_SIZE,
   type Book,
+  type Chain,
   type Hadith,
   type HadithAssessment,
   type Narrator,
@@ -14,6 +15,14 @@ import {
   type SourceVariation,
   type SourceVariationDetail,
 } from "@/lib/types";
+import {
+  buildTransmissionStrip,
+  filterSourcedAssessments,
+  hasSourcedCitation,
+  pickRepresentativeChain,
+  type ChainCandidate,
+  type TransmissionStrip,
+} from "@/lib/narrator-evidence";
 import {
   FALLBACK_BOOKS,
   FALLBACK_HADITHS,
@@ -333,7 +342,7 @@ export async function getHadithBySlug(slug: string) {
     variationIds.length
       ? supabase
           .from("chains")
-          .select("*, chain_narrators(*, narrators(*))")
+          .select("*, chain_narrators(*, narrators(*)), chain_assessments(*, scholars(*))")
           .in("variation_id", variationIds)
           .order("chain_number")
       : Promise.resolve({ data: [] }),
@@ -400,28 +409,7 @@ export async function getNarratorBySlug(slug: string) {
   const supabase = createServerSupabaseClient();
   const { data: narrator, error } = await supabase.from("narrators").select("*").eq("slug", slug).maybeSingle();
   if (error || !narrator) {
-    const fallback = FALLBACK_NARRATORS.find((row) => row.slug === slug);
-    if (fallback) {
-      const appearances = Object.entries(FALLBACK_VARIATIONS).flatMap(([hadithSlug, variations]) => {
-        const cluster = FALLBACK_HADITHS.find((row) => row.slug === hadithSlug);
-        return variations
-          .filter((variation) =>
-            variation.chains.some((chain) => chain.chain_narrators?.some((node) => node.narrator_id === fallback.id)),
-          )
-          .map((variation) => ({
-            hadith_slug: hadithSlug,
-            hadith_title: cluster?.title ?? hadithSlug,
-            book_title: variation.books?.title ?? null,
-          }));
-      });
-      return {
-        narrator: fallback,
-        assessments: FALLBACK_NARRATOR_ASSESSMENTS[slug] ?? [],
-        appearances,
-        error: null,
-      };
-    }
-    return { narrator: null, assessments: [] as NarratorAssessment[], appearances: [], error };
+    return fallbackNarratorProfile(slug, error);
   }
 
   const { data: assessments } = await supabase
@@ -429,41 +417,128 @@ export async function getNarratorBySlug(slug: string) {
     .select("*, scholars(*)")
     .eq("narrator_id", narrator.id);
 
-  const { data: nodes } = await supabase
+  const { data: selfNodes } = await supabase
     .from("chain_narrators")
     .select("chain_id, position, raw_name")
     .eq("narrator_id", narrator.id);
 
-  const chainIds = [...new Set((nodes ?? []).map((row) => row.chain_id))];
+  const chainIds = [...new Set((selfNodes ?? []).map((row) => row.chain_id))];
   let appearances: Array<{ hadith_slug: string; hadith_title: string; book_title: string | null }> = [];
+  const candidates: ChainCandidate[] = [];
 
   if (chainIds.length) {
-    const { data: chains } = await supabase.from("chains").select("id, variation_id").in("id", chainIds);
-    const variationIds = [...new Set((chains ?? []).map((row) => row.variation_id))];
-    if (variationIds.length) {
-      const { data: variations } = await supabase
-        .from("source_variations")
-        .select("id, hadith_id, books(title)")
-        .in("id", variationIds);
-      const hadithIds = [...new Set((variations ?? []).map((row) => row.hadith_id))];
-      const { data: hadithRows } = await supabase.from("hadiths").select("id, slug, title").in("id", hadithIds);
-      const hadithById = new Map((hadithRows ?? []).map((row) => [row.id, row]));
-      appearances = (variations ?? []).map((row) => {
-        const hadith = hadithById.get(row.hadith_id);
-        const book = one(row.books as { title: string } | { title: string }[] | null);
-        return {
-          hadith_slug: hadith?.slug ?? "",
-          hadith_title: hadith?.title ?? "Untitled cluster",
-          book_title: book?.title ?? null,
-        };
+    const { data: chains } = await supabase
+      .from("chains")
+      .select("id, variation_id, chain_narrators(*, narrators(id, slug, name, arabic_name, generation, region))")
+      .in("id", chainIds);
+
+    const variationIds = [...new Set(((chains ?? []) as Chain[]).map((row) => row.variation_id))];
+    const [{ data: variations }, { data: variationAssessments }] = await Promise.all([
+      variationIds.length
+        ? supabase.from("source_variations").select("id, hadith_id, hadith_status, books(title)").in("id", variationIds)
+        : Promise.resolve({ data: [] as Array<{ id: number; hadith_id: number; hadith_status: string; books: unknown }> }),
+      variationIds.length
+        ? supabase
+            .from("hadith_assessments")
+            .select("variation_id, reference_book, source_url")
+            .in("variation_id", variationIds)
+        : Promise.resolve({ data: [] as Array<{ variation_id: number; reference_book: string | null; source_url: string | null }> }),
+    ]);
+
+    const hadithIds = [...new Set((variations ?? []).map((row) => row.hadith_id))];
+    const { data: hadithRows } = hadithIds.length
+      ? await supabase.from("hadiths").select("id, slug, title").in("id", hadithIds)
+      : { data: [] as Array<{ id: number; slug: string; title: string }> };
+    const hadithById = new Map((hadithRows ?? []).map((row) => [row.id, row]));
+    const variationById = new Map((variations ?? []).map((row) => [row.id, row]));
+    const citedByVariation = new Map<number, number>();
+    for (const row of variationAssessments ?? []) {
+      if (!hasSourcedCitation(row)) continue;
+      citedByVariation.set(row.variation_id, (citedByVariation.get(row.variation_id) ?? 0) + 1);
+    }
+
+    appearances = (variations ?? []).map((row) => {
+      const hadith = hadithById.get(row.hadith_id);
+      const book = one(row.books as { title: string } | { title: string }[] | null);
+      return {
+        hadith_slug: hadith?.slug ?? "",
+        hadith_title: hadith?.title ?? "Untitled cluster",
+        book_title: book?.title ?? null,
+      };
+    });
+
+    for (const chain of (chains ?? []) as Chain[]) {
+      const nodes = [...(chain.chain_narrators ?? [])].sort((a, b) => a.position - b.position);
+      const variation = variationById.get(chain.variation_id);
+      candidates.push({
+        chainId: chain.id,
+        nodes,
+        currentNarratorId: (narrator as Narrator).id,
+        hadithStatus: variation?.hadith_status ?? null,
+        citedAssessmentCount: citedByVariation.get(chain.variation_id) ?? 0,
       });
     }
   }
 
+  const chosen = pickRepresentativeChain(candidates);
+
   return {
     narrator: narrator as Narrator,
-    assessments: (assessments ?? []) as NarratorAssessment[],
+    assessments: filterSourcedAssessments((assessments ?? []) as NarratorAssessment[]),
     appearances,
+    transmission: chosen ? buildTransmissionStrip(chosen) : null,
+    error: null,
+  };
+}
+
+function fallbackNarratorProfile(slug: string, error: { message: string } | null) {
+  const fallback = FALLBACK_NARRATORS.find((row) => row.slug === slug);
+  if (!fallback) {
+    return {
+      narrator: null,
+      assessments: [] as NarratorAssessment[],
+      appearances: [] as Array<{ hadith_slug: string; hadith_title: string; book_title: string | null }>,
+      transmission: null as TransmissionStrip | null,
+      error,
+    };
+  }
+
+  const appearances: Array<{ hadith_slug: string; hadith_title: string; book_title: string | null }> = [];
+  const candidates: ChainCandidate[] = [];
+
+  for (const [hadithSlug, variations] of Object.entries(FALLBACK_VARIATIONS)) {
+    const cluster = FALLBACK_HADITHS.find((row) => row.slug === hadithSlug);
+    for (const variation of variations) {
+      const citedAssessmentCount = variation.hadith_assessments.filter(hasSourcedCitation).length;
+      for (const chain of variation.chains) {
+        const nodes = [...(chain.chain_narrators ?? [])].sort((a, b) => a.position - b.position);
+        const current = nodes.find(
+          (node) => node.narrator_id === fallback.id || one(node.narrators)?.slug === fallback.slug,
+        );
+        if (!current) continue;
+        appearances.push({
+          hadith_slug: hadithSlug,
+          hadith_title: cluster?.title ?? hadithSlug,
+          book_title: variation.books?.title ?? null,
+        });
+        candidates.push({
+          chainId: chain.id,
+          nodes,
+          currentNarratorId: current.narrator_id ?? fallback.id,
+          hadithStatus: variation.hadith_status,
+          citedAssessmentCount,
+        });
+      }
+    }
+  }
+
+  const chosen = pickRepresentativeChain(candidates);
+
+  return {
+    narrator: fallback,
+    assessments: filterSourcedAssessments(FALLBACK_NARRATOR_ASSESSMENTS[slug] ?? []),
+    appearances,
+    transmission: chosen ? buildTransmissionStrip(chosen) : null,
     error: null,
   };
 }
