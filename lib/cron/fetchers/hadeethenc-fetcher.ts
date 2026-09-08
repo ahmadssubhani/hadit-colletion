@@ -35,8 +35,8 @@ interface HadeethEncSearchResult {
 interface HadeethEncDetail {
   id: string;
   title: string;
-  hadeeth: string; // matn text
-  attribution: string; // e.g. "Al-Bukhaari"
+  hadeeth: string; // matn text (in whichever language was requested)
+  attribution: string; // e.g. "Al-Bukhaari" — the actual source book/collector
   grade: string; // e.g. "Saheeh (authentic)"
   explanation?: string;
   hints?: string[];
@@ -44,6 +44,19 @@ interface HadeethEncDetail {
 }
 
 const BASE_URL = "https://hadeethenc.com/api/v1";
+
+async function fetchDetail(id: string, language: "en" | "ar"): Promise<HadeethEncDetail | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/hadeeths/one/?id=${id}&language=${language}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as HadeethEncDetail;
+  } catch {
+    return null;
+  }
+}
 
 export class HadeethEncFetcher implements SourceFetcher {
   name = "HadeethEnc.com Fetcher";
@@ -73,7 +86,6 @@ export class HadeethEncFetcher implements SourceFetcher {
         )}&language=en`;
         const searchRes = await fetch(searchUrl, {
           headers: { Accept: "application/json" },
-          // HadeethEnc can be slow; bail out rather than hang the cron run
           signal: AbortSignal.timeout(8000),
         });
 
@@ -87,32 +99,34 @@ export class HadeethEncFetcher implements SourceFetcher {
           if (seenIds.has(result.id)) continue;
           seenIds.add(result.id);
 
-          const detailUrl = `${BASE_URL}/hadeeths/one/?id=${result.id}&language=en`;
-          const detailRes = await fetch(detailUrl, {
-            headers: { Accept: "application/json" },
-            signal: AbortSignal.timeout(8000),
-          });
-          if (!detailRes.ok) continue;
+          // Fetch English and Arabic in parallel — same hadith id, different language param
+          const [enDetail, arDetail] = await Promise.all([
+            fetchDetail(result.id, "en"),
+            fetchDetail(result.id, "ar"),
+          ]);
 
-          const detail = (await detailRes.json()) as HadeethEncDetail;
-          if (!detail?.hadeeth) continue;
+          if (!enDetail?.hadeeth) continue;
+
+          // attribution is the real source book (e.g. "Al-Bukhaari", "Muslim") —
+          // use it as the book title instead of a generic placeholder.
+          const bookTitle = enDetail.attribution?.trim() || "HadeethEnc Encyclopedia of Translated Hadith";
 
           candidates.push({
             source: "hadeethenc",
-            sourceIdentifier: `hadeethenc:${detail.id}`,
-            bookTitle: "HadeethEnc Encyclopedia of Translated Hadith",
-            hadithNumber: detail.id,
-            chapter: detail.categories?.[0]?.title ?? topic.title,
-            arabicText: "", // English endpoint does not return Arabic matn
-            englishText: detail.hadeeth,
+            sourceIdentifier: `hadeethenc:${enDetail.id}`,
+            bookTitle,
+            hadithNumber: enDetail.id,
+            chapter: enDetail.categories?.[0]?.title ?? topic.title,
+            arabicText: arDetail?.hadeeth ?? "",
+            englishText: enDetail.hadeeth,
             translator: "HadeethEnc.com (IslamHouse.com)",
-            sourceUrl: `https://hadeethenc.com/en/browse/hadith/${detail.id}`,
+            sourceUrl: `https://hadeethenc.com/en/browse/hadith/${enDetail.id}`,
             tradition: "Sunni",
-            hadithStatus: detail.grade || "unspecified",
+            hadithStatus: enDetail.grade || "unspecified",
             chainStatus: "unspecified",
             narrationStatus: [],
-            statusNotes: detail.explanation,
-            rawPayload: detail as unknown as Record<string, unknown>,
+            statusNotes: enDetail.explanation,
+            rawPayload: { en: enDetail, ar: arDetail } as unknown as Record<string, unknown>,
           });
         }
       }
