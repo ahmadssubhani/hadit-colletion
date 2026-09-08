@@ -109,3 +109,4 @@ export function InteractiveChain({ chain }: { chain: Chain }) {
     </div>
   );
 }
+
