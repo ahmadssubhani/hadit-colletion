@@ -24,7 +24,7 @@ export function Header() {
     <>
       <header className="topbar">
         <Link className="brand" href="/">
-          <span className="mark">ر</span> Relegious
+          <span className="mark">ر</span> Religious
         </Link>
         <nav className="nav" aria-label="Primary">
           {LINKS.map((link) => (
