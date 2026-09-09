@@ -6,7 +6,7 @@ export function Footer() {
       <div className="shell footer-grid">
         <div>
           <Link className="brand light" href="/">
-            <span className="mark">ر</span> Relegious
+            <span className="mark">ر</span> Religious
           </Link>
           <p>An English-first, source-neutral hadith research platform. Wording, grades, and chains stay with their sources.</p>
         </div>
@@ -20,7 +20,7 @@ export function Footer() {
           <Link href="/about">About</Link>
         </nav>
       </div>
-      <div className="shell footer-bottom">© 2026 Relegious Hadith Collection. All rights reserved.</div>
+      <div className="shell footer-bottom">© 2026 Religious Hadith Collection. All rights reserved.</div>
     </footer>
   );
 }
